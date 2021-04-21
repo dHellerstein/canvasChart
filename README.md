@@ -18,7 +18,7 @@ A variety of features are supported!
 <li> Horizontal grid lines can be specified, as well as  "x" (vertical) and "y" (horizontal) reference lines.
 <li> Mouse clicks supported -- to identify X,Y coordinates and what shape (corresponding to a data row) was clicked on.
 <li> A sequence of several calls, with different datasets, can occur (with each graph displayed using different colors, etc)
-<li> A key can be displayed
+<li> A key can be displayed, at any location
 <li>) Sample selection (with a user supplied function) can be dynamically applied.
 </ul>
 This library is a heavily modified and updated version of https: weblogs.asp.net/dwahlin/creating-a-line-chart-using-the-html-5-canvas. It is particularly useful for drawing, and quickly refreshing, different colors & shaped points on a plotting area.
