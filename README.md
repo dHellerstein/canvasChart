@@ -22,3 +22,5 @@ g) A key can be displayed
 h) Sample selection (with a user supplied function) can be dynamically applied.
 
 This library is a heavily modified and updated version of https: weblogs.asp.net/dwahlin/creating-a-line-chart-using-the-html-5-canvas. It is particularly useful for drawing, and quickly refreshing, different colors & shaped points on a plotting area.
+
+This requres jQuery (version 3.4 or above)
