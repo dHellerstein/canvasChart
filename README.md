@@ -22,5 +22,8 @@ What does this do: dynamically creates plots  using html5 "canvas" tools.
     g) A key can be displayed
     h) Sample selection (with a user supplied function) can be dynamically applied.
 
-This library is a heavily modified and updated version of https: weblogs.asp.net/dwahlin/creating-a-line-chart-using-the-html-5-canvas.
+For installation instructions, and a full description of how to use the main function (wsCanvasChart.render()), as well as other functions --
+see wsurveyCanvasChart.txt 
+
+Note: wsCanvasChart is a heavily modified and updated version of https: weblogs.asp.net/dwahlin/creating-a-line-chart-using-the-html-5-canvas.
 It is particularly useful for drawing, and quickly refreshing, different colors & shaped points on a plotting area.
