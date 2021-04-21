@@ -1,0 +1,1085 @@
+09 June 2020:  wsurveyCanvasChart  -- create graphs using HTML5 (update 20 April 2021)
+
+This library is a heavily modified and updated version of https: weblogs.asp.net/dwahlin/creating-a-line-chart-using-the-html-5-canvas.
+It is particularly useful for drawing, and quickly refreshing, different colors & shaped points on a plotting area.
+
+  What does this do: dynamically creates plots  using html5 "canvas" tools.
+
+  What does this use: a dataSet saved in an javascript array. Each row of the array is an object that specifies
+                      an "x" and "y" value.   And (optionally) a "L" (label), an "ID", and a number of display specs.
+
+  A variety of features are supported:
+
+    a) Can create points (circles, squares, etc), trend lines, or bar graphs  -- with selectable colors and line styles
+    b) Can label points, using Y values or a data-row "L" attribute
+    c) Main title, x-axis title, and y axis title (left and right) can be specified. Fonts and colors can be specified
+    d) Range of data to display (both  in X and Y) can be specified, or you can let the function auto-determine
+    d) Horizontal grid lines can be specified, as well as  "x" (vertical) and "y" (horizontal) reference lines.
+    e) Mouse clicks supported -- to identify X,Y coordinates and what shape (corresponding to a data row) was clicked on.
+    f) A sequence of several calls, with different datasets, can occur (with each graph displayed using different colors, etc)
+    g) A key can be displayed
+    h) Sample selection (with a user supplied function) can be dynamically applied.
+
+
+  Hint:  testWsurveyCanvas.html (in the same examples/ sub directory) demos the use of this wsSurveyCanvasChart.
+
+      ===================================================
+
+Setup:
+
+   In your HTML file, include something like:
+          <script src="/wsurvey/jsLib/wsurveyCanvasChart.js" type="text/javascript"></script>
+    and a <script ..> to jQuery.js (version 3.4 or above is recommended)
+
+      ===================================================
+
+Usage:
+
+     a) Create a <canvas> element in your HTML file. This is where the graph is displayed
+     b) Specify a dataSet
+     c) Call wsCanvasChart.render(..), specifying where to write the plot, the dataSet, and plot options
+
+       Note: in this documentation "plot" and "chart" are synonyms -- its what is drawn (it could be chart, a graph, or
+             a scatter of objects in a grid).
+
+   wsCanvasChart.render()  syntax:
+
+       wsCanvasChart.render('idOfCanvasElement', dataSpecs);
+
+    where
+        idOfCanvasElement : the id of a <canvas> element
+                It SHOULD have height, and width attributes. It usually is empty.
+
+                   Example: <canvas id="idOfCanvasElement" height="300" width="800"></canvas>
+
+                Note that the graphing area is a portion of this area -- margins are used to display axises and labels
+                    The default margins are: top: 40, left: 75, right: 0, bottom: 75  (in pixels).
+                    They can be changed.
+
+         dataSpecs: an object specifying what and how to create this graph
+
+   wsCanvasChart.render returns:
+          [statusMessage,chartSpecs,xRange,yRange]
+
+    where:
+        statusMessage: an object containing variables describing disposition of points
+        chartSpecs: canvas objects and lookup tables used by mouse clicks. This can be included in dataSpecs if you do a sequence of calls
+            chartSpecs fields are:
+                    plotNum, width, height, hitInfo
+                    hitInfo has fields: image, retTime, colorHash
+            Although chartSpecs is designed for internal use, the appendix provides some details for the ambitious programmer.
+        xRange : the xRange used (perhaps auto determined) -- as a 3 element array [min,max,ntics]
+                If x is cateogical (if xRange is not a specified argument), this will be ''
+        yRange : the yRange used (perhaps auto determined)  -- as a 3 element array [min,max,ntics]
+
+     Or, if a fatal error, returns
+         [errorMessage]
+
+    Hence, if returned length is 1, a fatal error occurred.
+
+    The indices of statusMessage (if not an error) are (with examples):
+	   nPoints:  3
+	   ok:    3
+	   bad Y:    0
+	   bad X: : 0
+	   bad X and Y:  0
+	   X out of range:  0
+	   Y out of range:  0
+	   Y off chart:  0
+
+      ===================================================
+
+Dataspecs details
+
+  There are a number of fields you can specify in dataSpecs
+  The only required dataspecs field  is 'dataPoints`
+
+    dataPoints: an array of objects. Each object is a "row" of data; and  must have fields .x and .y (case insensitive)
+         Example: dpoints=[('x':1,'y':10},
+                           {'x':5,'y':50},
+                           {'x':3,'y':22}];
+
+      A number of other attributes (for each row) are allowed (but not required):
+        L (or Label)   The 'L'  (or 'Label') attribute can be added to any (or all) of the datapoints.
+                       Its value will be used as a point label
+           Example: dpoints=[{'x':1,'y':10,'L':'first obs'},
+                           {'x':5,'y':50},
+                           {'x':3,'y':22,'L':'last obs'}];
+           If a Label is not specified, the 'y' value is used.
+
+       ID : An "id". This is NOT used by wsurveyCanvas. However, it is retained in data stuctures.
+            In particular, in the "obsInfo" data fields returned by   wsCanvasChart.renderMouseXY.
+            It is meant to facilitate matching a "clicked on point" to the underlying observation represented by this point
+           -- for which you may have quite a bit of information that was NOT sent to wsurveyCanvas!
+
+           If ID is not specified, ID='' is used
+
+     INFO :  (must be uppercase). Other information on this point. By default this will be {}.
+             This is not used by wsCanvasChart, but may be useful for click handlers or selection functions.
+             For example, wsCanvasChart.makeSteps() saves "added point" information in ['INFO']['ADDED']
+
+      You can also specify a number of color and size options for each row in dataPoints.
+      If not specified, the plot specific option is used (see below for details)
+
+            barWidth (or HW)  : the width (in x space, not in pixels) of a vertical bar (histogram)
+                        Example: {'x':'14','y':123,'HW':'3'} Say, if this bar represents x values from  11 to 17.
+                                 By default, bar widths are centered on x. To use widths that start or end at x,
+                                 use HW='Snn' (left edge of bar over x) or HW='Enn' (right edge of bar over x)
+
+            barColor (or HC)  : the color of a vertical bar (histogram)
+                        Example: {'x':'14','y':123,'HC':'orange'}
+
+            lineColor (or LC) : the color of a line.  Example:  {'x':1,'y':5,'LC':'red'}
+            lineSize (or LS)  : the size (thickness) of a line.     Example:  {'x':1,'y':5,'LS':'4'}
+            lineDotted (or LD)  : the dot style of a line.     Example:  {'x':1,'y':5,'LD':'10 5'}
+               Note: these are used for line segments that "start at this point".
+
+            pointSize (or PS) : the height (and width) of a shape at a point (in pixels).    Example:  {'x':1,'y':5,'PH':'10'}.
+                               Note: PH and PW are synonyms for PS
+            pointColor (or PC) : the color of this shape.   Example:  {'x':1,'y':5,'PC':'#ababff'}
+
+            pointType(or PT) : shape used to display point. Default is circleGradient
+                          Choices are:
+                                  none (or N) : do NOT draw a shape at this point
+                                  circle (or C):  a circle
+                                  circlePlus (or CP) : a circle with a plus sign embedded.
+                                  circleBar (or CB) : a circle with a horizontal bar embedded.
+                                  circleFull (or CF): a circle with a solid color (the chosen color)
+                                  circleGradient (or CG): a circle with a gradient (from white to chosen color)
+                                  square (or S):  a square
+                                  squarePlus (or SP) : a square with a plus sign embedded.
+                                  squareFull (or SF): a square with a solid color (the chosen color)
+                                  squareGradient (or SG): a square with a gradient (from white to chosen color)
+                                  triangle  (or T):  a triangle
+                                  triangleFull (or TF): a triangle with a solid color (the chosen color)
+                                  triangleGradient :   an upside down triangle (a triangle rotated by 180 degrees)
+                                  triangleFullU (or TD):   an upside down triangle with a solid color (a triangle rotated by 180 degrees)
+                                  triangleBar (or TB): a triangle with vertical bar from its top vertex
+                                  diamond (or D) :   a diamond (a square rotated by 45 degrees)
+                                  diamondPlus (or DP) : a diamond with a plus sign
+                                  diamondBar (or DB) : a diamond with a horizontal line embedded
+                                  diamondFull (or DF) F:   a diamond with a solid color
+                                  +  : a  +
+                                  x  : a  X
+                                  |  : vertical bar (through center)
+                                  _  : horizontal bar (though center)
+                                  /  :  forward slash (SW corner to NE corner)
+                                  \   : backward slash (NE corner to SE corner)
+                                  hat  : hat (upward pointing > )
+                                   ..  : double dot
+                                   --  : double dash
+                                   .- or -.  : dot dash dot
+                                  check  : checkmark
+                                  arrowUp (AU) : up arrow
+                                  arrowRight (AR) : right arror
+                                  arrowDown (AD): down arrow
+                                  arrowLeft (AL): left arrow
+                                  arrowSE (ASE): SE arrow
+                                  arrowSW (ASW): SW arrow
+                                  arrowNW (ANW): NW arrow
+                                  arrowNE (ANE): NE arrow
+
+            pointBorder (or PB) : width of line used for "border" (in pixels).
+                                 Only used with the non-filled pointTypes: 'circle', 'square', 'diamond', 'triangle', and 'triangleU' .
+                                 Note: see filledBorderWidth (BW) and  filledBorderColor (BC) for "borders" for filled points
+
+            emphasisSize (or ES): size of a rectangle drawn for emphasis. If not specified, or 0, emphasis highlighting is not done
+            emphasisBorder EB):  width of border lines (a non filled rectangle is drawn). Default is 1
+            emphasisColor (EC) : color of empahasis rectangle. If not specified, 'gold' is used
+
+            textColor (or TC) : the color of a point label.   Example:  {'x':1,'y':5,'TC':'tan'}
+
+            filledBorderWidth (or BW) :  width of the border for filled objects. If this is 0, borderColor is ignored no border is drawn)
+            filledBorderColor (of BC) :  color of the border for filled objects (not used for unfilled objects)
+               Note: filledBorderWidth & filledBorderColor are NOT used with: 'circle', 'square', 'diamond', 'triangle', and 'triangleU'
+                     -- see pointBorder (above)
+               Example:  {'x':1,'y':5,'PT':'SF','BW':4,'BC':'yellow'}
+
+    To reiterate:
+       You can seperately specify none, one or several, or all of these options for each row in dataPoints
+      If you do not specify a point specific option, the plot specific options (described below) are used for that point.
+
+
+           ----------------------------------------------
+
+  The other fields of dataSpecs are optional. Several you typically will specify (such as title)
+
+
+    title: Title (displayed above the graph)
+    xLabel: Label for x-axis. Example: 'Year (1=start of first year)'
+    yLabel: Label for y-axis. Example: 'Inflation rate (%)'
+    yLabel2: Label for 2nd (right sied) y-axis. Example: 'Height'. If specified, and not '', is displayed (even if yRange2 is not specified).
+
+    chartSpecs:
+
+       On first call, this is usually a '' or 0 (or not specified)
+       Otherwise, it should  be from a prior call to wsCanvasChart.render (the 2nd value in the array returned).
+       If this is not included, than "find a shape on click" will only find shapes written in the last call to wsCanvasChart.render
+
+   renderTypes: An array that can be one or more of:
+          [wsCanvasChart.renderType.lines, wsCanvasChart.renderType.points,wsCanvasChart.renderType.bars,wsCanvasChart.renderType.textValues]
+      where ...
+              lines : draw a line graph connecting ponts
+              points : draw a point (circle, square, or whatever) at each pont
+              textValues: draw Y value at each point (or L value if a "L" attribute is specified for a data point)
+              bar : draw a vertical bar (used to display histograms)
+
+        Note: .line, point, .text, and .bar   are synonyms for the above.
+
+      If not specified, lines is used.
+
+           Example:   renderTypes: [wsCanvasChart.renderType.lines, wsCanvasChart.renderType.points]
+
+        Notes:
+          * each "point", "line", or "bar" is treated as a "shape".  These "shapes" can be identified via mouse clicks (see Other functions below)
+          * do NOT quote these! They are constants created by wsCanvasCharts.
+          * Hint: see the wsCanvasChart.makeSteps() function below -- to create a "step function" line plot.
+
+           ----------------------------------------------
+
+  These are optional (defaults are used if not specified). Frequently used options include: chartDisplay, clearAll
+
+    axisTicFont : font used for value markings on x and y axis (labelFont is the default)
+    axisTicColors : color used for value markings on x and y axises (black is the default)
+                  If one color, it is used for all axises.
+                  If a csv: [xaxisColor,yaxisColor,y2axisColor]
+                  eg ['brown','gold','tan'] -- 2nd yaxis has tan color (for tic labels)
+                   Note that 2nd yaxis tic label color is ignored if yRange2 is not specified
+
+    backGroundColor: colors used for the plotting area background.   The non-plotting area is white.
+                    If not specified, or '', a light gray to white to light gray linear gradient (from upper left to lower right) is used.
+                     This should be a CSV of four colors. If less than 4, #fff is useds for the missing values.
+                     Example: backGroundColor='yellow,orange,yellow,#fff';
+                     Techical note: these 4 colors are used in linearGradient colorStops at 0.0, 0.2, 0.8, and 1.0.
+
+     barColor: color used to draw vertical bars.
+                A linear gradient, with a  transparent light gray at the top and this color at the bottom, is used.
+               If not specified, or equal to '', a default light (mostly transparent) lime is used.
+               The transparency allows other values (such as labels) to be read.
+               To maintain transparency, we recommend using something like 'rgba(red,green,blue,transparency) '
+               For example:
+                   barColor:'rgba(100,50,50,0.2)'
+               If a datapoint has a HC (histogramColor) attribute, this is not used.
+
+     barWidth: width -- in x space -- used to draw vertical bars.
+               This is IGNORED if x is a categorical variable!
+               If not specified, or '' or 'A', a width is automatically determined.
+               This should be specified in "x" space - NOT in pixels.
+               If a datapoint has a HW (histogramWidth) attribute, this is not used.
+                  See description of HW above for extra features (such as the 'Sxx' or 'Exx' variants)
+
+
+  chartDisplay : what to display.  Default is '4'
+           -2: Nothing -- use this if you only want to display the key
+           -1: Main title only
+           -11: Display Y axis only. Useful if you are displaying a right-side Y axis (after a 2nd plot), and do  not want to overwrite
+                earlier axises and titles.
+            0: Display everything except the data  -- the  main title, x & y axis labels, horizontal grid lines,  x & y axises with
+               tic marks and tic mark text).
+            1: Display data points  only -- the lines, circles or other shapes, text labels, or vertical bars -- as specified in renderTypes.
+            2: (1) and x and y axises -- the lines only! No: main title, horizontal grid lines, axis tics,axis tic labels, or axis labels!
+            3: (2) & main title &  x and y axis tics & horiz gridlines (and numeric value associated on x and y axises them). No axis labels!
+            4: (3) &  x and y axis labels. Thus: display everything
+
+       Basically: 0 followed by 1 is same as 4.
+                  -1 is a subset of 0 (JUST the main title)
+
+      Notes:
+         *  0 followed by 1 (with clearAll=0) is same as 4.
+         * -1 is a subset of 0 (JUST the main title)
+         * If chartDisplay=1 is useful if drawing several sets of points on top of each other (with 2nd and later calls using clearAll=0)
+            In this case you SHOULD specify the same xRange and yRange for each set.
+            Otherwise locations on the chart  will differ for each set -- the tic marks will be accurate for just one of the plots!
+         *  chartDisplay=-1 is typically used after updating a plot (since the data being displayed might of changed). 
+            Hence, typically clearAll=0
+
+   chartDisplay_noTicLabels : never display tic marks (and tic labels) -- even if chartDisplay = 0, 3, or 4.
+
+   chartDisplay_showTitle : 0,1, or 2
+                               0) Let chartDisplay decide.
+                               1)  always displays the title
+                               2)  always displays the title AND clears the title area (the top margin) before writing.
+
+                              Title is not written with chartDisplay of 1 or 2 -- unless chartDisplay_showTitle= 1 or 2.
+                              If 2, the  title area is always cleared (regardless of chartDisplay value)
+                              If 0, and chartDisplay is not  1 or 2, the title area is NOT overwritted. As you add titles, they will quickly
+                              become illegible!
+
+    chartKey: an object containing key specifications. This is optional, and can contains a number of options.
+           See the appendix for the details
+           Note: you can JUST display a key (say, in its own canvas). Use  chartDisplay=-2, and dataPoints={}
+
+
+   chartMargin: margins of chart as an associative array. Default is  chartMargin:{'top':40,'left':75,'bottom':75,'right':20}
+
+        If this is too small, then titles and axis labels might be cut off.
+        Making these small, in combination with chartDisplay=1 or 2, may be useful if you want to maximize chart area (and don't care
+        about descriptive titles)
+
+        Alternate (MOSTLY DEPRECATED): specify as a CSV. For example:    '40,75,75,20'. In 'top,left,bottom,right' order.
+
+
+   clickFunc:  name of function to call on mouseDown or mouseUp -- this is the function, NOT a string!
+               If '' or not specified, a mouseDown and mouseUp event handler is not enabled (though you can enable it seperately).
+
+      Example: clickFunc:myClickFunction
+
+      See next section for more on clickFunc
+
+
+    clearAll :  0/1 (1 is default). If 1, canvas (chart, axises etc, and key) are  cleared; and  information on prior shapes (from prior calls) is erased
+              from chartSpecs.
+               Otherwise, chart area is overwritten (prior points, etc are NOT erased), and chartSpecs will contain information on prior and
+               currently drawn shapes.
+               To completely clear all content: specify a zero length array for dataPoints (and chartDisplay=1)
+
+    clearChart:  0/1 (0 is the default). If 1, clear chart area... but not the x axis, or title, etc.
+                 If clearAll=1, this is ignored.
+
+    createHitInfo: 0/1. If 0, do NOT modify the chartSpecs -- the information on "shapes" just drawn.
+                   This means these shapes will NOT be detectable by mouseclicks (using renderMouseXY).
+                   Default is 1 (do create this information)
+                   Set to 0 to speed things up.
+
+                   MORE IMPORTANTLY: if you write descriptive stuff (such as highlighting circles),
+                   you can set createHitInfo=0 to prevent these new shapes from overwriting existing shape information
+
+    dataPointSize: Width  (pixels) for data point shapes (such as colored circles, or rectangles, or ..).
+                   Example: '6' ('8' is the default).
+                   If a datapoint has a .PS attribute, this is not used.
+
+    dataPointColor: Color used for data points. Example: 'blue' ('Green' is the default). 
+                  If a datapoint has a .PC attribute, this is not used.
+
+    dataPointType: Shape  used for data points. Examples: 'square' and 'squareFilled'
+                    'circelGradient' is the default.  
+                     If a datapoint has a .PT attribute, this is not used.
+                    See description of 'pointType' for a list of supported types.
+
+    dataPointBorder : Border line size (pixels). Not used for "full" or "gradient" types of shapes.
+                    If a datapoint has a .PL attribute, this is not used.
+
+                    Reminder: dataPointBorder is uses for "unFilled points"
+                              filledBorderWidth and filledBorderColor are used for "filled points"
+                              
+   dataPointEmpahsis: A box drawn to "emphasize" data point. This in addition to the shape.
+                      The color to use. By default, a rectange of size dataPointSize+2, with a 1 px border, is used.
+                      These can be overridden on a point-by-point basis (see EC, EB, and ES below)
+
+
+    dataPointTextFont: Font used for point specific text (the Y value or the Label).
+                     Example: 'italic bold 8pt Arial' ('10pt Arial' is the default)
+                   Note: dataPointTextFont can NOT be specified "point by point"
+
+    dataPointTextColor: Color used for point specific text.
+                      Example: 'orange' ('#766767' is the default)
+                    If a datapoint has a TC attribute, this is not used
+
+    dataPointTextOffset: CSV of pixel offset (right and down) from point location, for text written next to points.
+                Example: ('4,6') ('-5,16'  is default)
+
+                Notes:
+                   * Careful: text location is also impacted by dataPointTextAlign
+                   * dataPointTextOffset can NOT be specified "point by point"
+
+
+    dataPointTextAlign: Alignment of text (relative to specified x,y position. Default is 'left'.
+                  Valid options (case insensitive) are:  start, end, left, center, and right
+
+                  Notes:
+                     * for labels, axis tic values, etc -- a 'center' alignment is always used.
+                     * dataPointTextAlign can NOT be specified "point by point"
+
+
+    dataPointTextFill: Filled or unfilled text for dataPoint text. 0: open, 1 (the default) is filled.
+
+                   Note: dataPointTextFill can NOT be specified "point by point"
+
+    filledBorderWidth: Width (pixels) of border around filled shapes (such as SQUAREFULL or CIRCLEFULL).
+                       Default is 0 -- no border drawn around filled shapes
+                      If a datapoint has a .BW attribute, this is not used.
+
+    filledBorderColor:  Color of border of filled shapes. If filledBorderWidth (or a point specific BW) is 0,
+                        no border is drawn around filled shapes. Default is #fff (white).
+                      If a datapoint has a .BC attribute, this is not used.
+
+                      Reminder: dataPointBorder is uses for "unFilled points"
+                              filledBorderWidth and filledBorderColor are used for "filled points"
+
+    gridLineSpecs: optional. CSV of values where to place horizontal gridlines (that intesect the y axis) grid lines.
+          Example: 'B0,1,2,3,4,B5,7,9 '
+
+          These are in Y space of the current plot (not in pixel space).
+
+          Note the use of 'B' prepended to a value. If this occurs, this horizontal gridLine will be bolder.
+               Also, non-numeric values in gridLineSpecs (after removal of leading 'B') are ignored.
+               Values SHOULD be specified in ascending order.
+
+      If gridLineSpecs is NOT specified (or is ''), then yGridLinesPx is used (yGridLinesPx is ignored if gridLineSpecs is specified).
+      If neither gridLineSpecs or yGridLinesPx is specified, yGridLinesPx=30 is used
+
+      If a lot of gridlines are displayed (say, you specify a lot of elements in gridLineSpecs), the y-axis could get crowded.
+          To prevent this, a minimum of 12 px seperate is enforced.
+          If a grid line (and its value on the y-axis) are closer than this to the prior grid line, it will NOT be drawn)
+
+      To suppress horizontal (y axis) grid lines: gridLineSpecs=''; ygridLinesPX=-1;
+      To compute grid lines (for use in y axis tics and labels), but suppress the horizontal lines in the plotting area:
+        yGridLinesColor='n'
+
+    globalCompositeOperation :  how to write new shapes to existing shapes. The default (or if '') 'source-over'.
+                              Other useful values are 'destination-out' (remove existing object)
+                              For description of the many values, se:
+                                   https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
+
+    ignoreBad:  0/1 (0 is default). If 1, bad observations (i.e.; non-numeric y values) are dropped.
+                  Otherwise, an error message occurs (with no graph displayed)
+
+    labelFont:  Font used for x and y axis labels. Example: '12pt Arial' ('14pt Arial' is the default)
+
+    lineColor:   color of line. Example: "blue"  ('black" is the default).
+                 If a datapoint (that starts a line segment) has a .LC attribute, this is not used
+    lineWidth:   width line. Example: "3"  (2 is the default). Note that on lines to "y off of chart", the width is always 1.
+		 If a datapoint (that starts a line segment) has a .LS attribute, this is not used
+    lineDotted:  Dotted lines flag(default is '0'). Values can be: '0'  , 'segmentLength', or  or a LineDash pattern:
+                'draw,gap,draw,gap,....' (each measurement in pixels).
+		 If a datapoint (that starts a line segment) has a .LD attribute, this is not used
+                 Examples:
+                      0 (or '') : solid
+                      '2' : dotted,
+                      '10': dashed
+                      '10,5' : sequence of 10 px dash, and 5px short gap
+
+                Notes:
+                   Non-numeric values (or '') are skipped (or ignored).
+                   For a description of lineDash patterns:  https: developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/setLineDash
+
+     refLinesY  : Draw horizontal reference lines. In Y space (not in pixels)
+                 These will NOT be clickable.
+                 Syntax: a csv of location,color, pattern triplests (seperated by spaces):    '  yLocation color dotted/dashed , ylocation2 ... '
+
+                    If color is omitted, black is used.
+                    If dotted/dashed/solid (case insensitive) is ommitted, 'dotted' is used
+                           (DO, DA, or SO are looked for -- anything else yields DOTTED)
+                   Example:refLineY='0.0 , 1.0 black dashed, 10 #ffbacc solid '
+                   
+                   In contrast to other gridLines -- these do NOT yield a tic mark (or label) at the Y axis.
+                   And they can be used with  yGridLinesPx or gridLineSpecs
+                   
+                   refLines are displayed if chartDisplay> 0.
+                   To only display refLines, specify dataPoints={} AND values for yRange and xRange
+
+     refLinesX  : Draw vertical reference lines. In X space (not in pixels)
+                 These will NOT be clickable.
+                 Syntax: sam eas refLineY:  xLocation color dotted/dashed , ylocation2 ...
+
+                   Example:refLineX='100 blue dashed, 300 #0000ff '
+
+                   refLines are displayed if chartDisplay>0.
+                   To only display refLines, specify dataPoints={} AND values for yRange and xRange
+
+     selectFunc: a selection function that is called before a row is displayed (as a point, a bar, etc).
+                 If specified, it can be a function, or a string pointing to a function.
+                 If the function does not exist:
+                   a) If specified as a function, you will probably get a javasscript failure
+                   b) If specified as a string, an alert will display an error messages. No selection will occur.
+
+                 The function is called with an object containing the attributes of this point;
+                 such as .X, .Y, .LABEL.
+
+                 If the selectFunc returns a 0, the point is skipped (not plotted).
+                 Otherwise, it is retained.
+                 
+                 Example:  'selectFunc': 'ccSelect',
+
+     skipYout :  0 /1 (0 is default). If 1, ignore y observations outside of yRange.
+                Otherwise, display them "lightly"   (small ball, dashed line, no bar, no text label)
+
+    titleFont : Font used for title. Example:  '15pt Arial' ('20pt Arial' is the default),
+
+     xRange:  Range of x values.
+            A csv with 'xmin,xmax,ntics'.
+            Default is ''
+
+         If not specified (or specified as ''),  x values are treated as catgories, and not as continuous numbers.
+         Points will be displayed in the order they appear in dataPoints (and bad values of Y cause error)
+         The x axis will be ordinal -- it doesn't matter how far apart (numerically) the x-values are.
+         In fact, the x-values don't have to be numbers.
+
+       where:
+          xmin and xmax:  left and right boundaries of the x axis.
+                          If ',', the minimum (or maximum) value of X in dataPoints is used.
+                          Points with an x value  < xmin or > xmax are ignored.
+
+          ntics : optional. # of tic marks & labels (evenly spaced). If not specified, one tic mark per datapoint (if too crowded,
+                            some x labels are not displayed)
+                           Or '@ xTic1 xTic2 ... xTicM ' -- a set of values to place tic marks at (using yPrec format).
+                           Or '@.d   xTic1 xTic2 ... xTicM'  -- same as above, but using d decimal points
+
+       When xRange is NOT specified (or is '', or does NOT contain at least one ","): each datapoint is a "category", 
+       with the x value displayed on the x-axis but otherwise having no import
+
+       To reiterate: if xRange is specified it MUST contain at least one  "," (if it does not, xRange is treated as "").
+
+       You can specify blank (on either side of the comma) to mean "use min (or max) value of x"
+       Examples:
+             xrange: ''           no min and max -- x values are categories. A tic mark will be placed for each point (showing the X value
+                                  as is -- could be non-numeric!)
+             xrange: '10'         no min and max (same as above) -- you must have at least ONE comma!
+             xrange:'0,1000,20'   min=0, max=1000,20 tic marks)
+             xrange:  ','         use min and max of observed x values. # datapoints tic marks
+             XRANGE: '0,,10'    MIN OF 0, MAX OF OBSERVED X, 10 TIC MARKS
+             xrange: '0,,@ 10 20 50 100'    min of 0, max of observed x, 4 tic marks at 10, 20, 50 and 100.
+             xrange: '0,,@.0 10 20 50 100'    min of 0, max of observed x, 4 tic marks at 10, 20, 50 and 100. Nothing after decimal point
+
+   yAxisRight: if 1, the yAxis is drawn on the right. Otherwise, on the left
+               This is an alternative to specifying yRange2.
+               Its advantage is you do not need to rescale the data in a 2nd plot.
+               Using this effectively requires careful use of chartDisplay -- such as using chartDisplay=-11 in  seperate
+               call that just writes this second y axis.
+
+               If you use yRange2 and yAxisRight, odd things might happen.
+
+   yRange:  CSV  of 'ymin,ymax'.
+
+        Ymin: the bottom of the Y axis. If a value is < than yMin, it is displayed "lightly" (using a  small pink ball, a light line,
+              and no text value)
+        Ymax: the top of the Y axis. If a value is > maxYuse, it is displayed "lightly"
+        Examples:
+                 0, 100   -- ymin=0, ymax=100
+                 ,         -- ymin and ymax are min and max y vales (in the data)
+                 0,       -- ymin=0, ymax = max value in data
+      Notes:
+        If  yRange is not specified, or equal to '', or does NOT contain a comma: the minimum y value (or maximum y value) are used
+
+        yRange is used to specify the values of the tic marks on the primary y axis. For an optional 2nd Y axis, see yRange2.
+
+        When a y value is out of range (<yMin or > yMax)
+          If skipYout=0
+             Bars with values out of range are NOT displayed.
+             Text labels are NOT displayed
+             However: lines and points are drawn "lightly"  (using a small, a light dashed line)
+                       For a y value > the maximum  yRange (or < minimum yRange), a line will be drawn toward it, that is cutoff at
+                       the top (the bottom) of the charting area.
+
+          Otherwise,
+              the point is dropped.
+              For example: a line will be drawn directly between a point before, and after, a dropped point (assuming these
+              before & after points are not out of Y range).
+
+          Note: points outside of the x range are always dropped.
+
+  yRange2 :   if specified, and not '', used to draw tic mark labels on a 2nd y axis (on right side of chart area).
+             The lines and tic marks are the same as on the primary (left side) y axis.
+
+                  Thus, 2nd axis tic marks will have the same positioning as the tic marks on the left axis, but will have different labels.
+
+             Unlike yRange, there are no defaults. You must specify both min and max.
+             If you do not, a 2nd Y axis will NOT be drawn.
+                  For example: "0.001,0.01";
+
+               CAUTION: plotting of points will use the yRange values to determine location in the chart area, and to exclude points outside
+                         of the range.  yRange2  is ONLY used to display a 2nd y axis.
+
+                    For example, a first set of points is raw values, and a second set is a percent of a maximum (of a different set of data).
+                    Both calls use the same yRange (that contains the min and max raw values)
+                    If you use the .y values of the second set as is -- they could be smoooshed down (between 0.0 and 1.0
+                    on the "raw vales" axis.
+
+               Hints: use wsCanvasChart.rescaleY() to rescale the "2nd" set of points (to fit in the full plot area).
+                      use wsCanvasChart.getRanges(dataPoints) to find the min and max of a set of points.
+
+               Alternative:  specify yAxisRight=1.
+                     If you use yRange2 and yAxisRight, odd things might happen.
+
+
+
+  yGridLinesPx : pixel seperation between grid lines. Computes values corresponding to this location on the y axis (so funny decimal
+                values may be displayed)
+               This is ignored if gridLineSpecs is specified.
+
+               To suppress horizontal (y axis) grid lines: gridLineSpecs=''; ygridLinesPX=-1;
+               To compute grid lines (for use in y axis tics and labels), but suppress the horizontal lines in the plotting area:
+               yGridLinesColor='n'
+
+               
+  yGridLinesColor : color to use in yGridLines
+                    If 'n', do NOT draw the gridlines.
+                    However, tic marks will be drawn (and tic mark labels).
+                    Default is a light gray (#E8E8E8)
+
+  yPrec: Decimal precision of number display (on the y-axis, and when writing a y value next to point). Example: yPrec=1  (default is 0)
+         Or, a string containing a "sprintf" format. For example '%6.3e' (6 digit, 3 to left of decimal point, scientific notation').
+         If you use this sprintf format, it is up to the use to provide a valud sprintf formatting string (it is used as is).
+
+
+
+Note on key
+
+  The dataSpecs['key'] field is used to specify a key for a chart.
+    * The shapes, etc specified in 'key' are independent of the points specified in dataSpecs.
+    * The key is drawn AFTER all the chart elements (points, axises, titles, etc).
+    * You can specify the location of the key -- in pixel space (not x/y value space)
+    * By default, the key will be placed in the right margin. But it doesn't have to be.
+
+  dataSpecs['key'] must be an object. The following options (fields of dataSpecs['key']) are supported
+   Defaults are used if an option is not specified. These ARE case sensitive!
+
+     show:  0 or 1. Default is 0: do NOT show a key.
+     margins: object with left,top,right,bottom keys. The boundaries of the key box. In picxel.
+           You can specify any subset of these. Defaults are used otherwise.
+           The defaults are
+              ['left']= 2 pixels to right of the right edge of the charting area
+              ['top'] = 10 pixels from top of canvas
+              ['right']=5 pixels away from the canvas' right edge
+              ['bottom']=10 pixels up from the canvas bottom
+           Basically: the default places the key in the right margin.
+                 :
+     globalCompositeOperation: Optional, how to write the key. Default is 'source-over' (overwrite plotting content).
+          There are numerous other globalCompositeOperation values -- see documentation on globalCompositeOperation in HTML5 Canvas for detilas
+
+     opacity:  Opacity of the key box. Default is 1.0 (no opacity). A value like 0.9 will allow for a bit of an underlying plot to
+                be visible.
+
+     backgroundColor:   Either a single color, or up to 4 colors. Same syntax as backGround color for the chart area.
+                       Example: '#f1f2f3,white,white,#f1f2f3',
+
+     borderColor:  border used for the key box. Default is 'black'. Specify '' for no border.
+
+     title:    title at top of key box. Default is 'Key'.  Set to '' to suppress a title.
+     titleFont: Same as font declarations in chart title. Default is :'14pt Arial ' ,
+     titleColor: color of title. Default is 'black'
+
+     textFont:  font used to dislay the "text" portion of each key. Default is :'10pt Arial',
+     textColor: color used to display the text portion. Default is 'black'
+
+     symbolSize: a default size for the "symbol" portion of each key. Semi-deprecated (a PS attribute should be used for each symbol)
+
+     rowPad:  -- extra padding (in pixels) at top and bottom of each key
+     rowLineColor: color of a dotted line to draw between key rows. If '', or not specified, a dotted line is not drawn.
+
+     texts: n array of the text portion of each key,
+            Each element can be either a text string, or an object with 'text,'font', and 'color' fields
+
+        Example of texts (note: NO HTML -- plain text!)
+          texts=[ 'this is first',
+                  'this is second' ,
+                  {'text':'third line is longer','font':'8pt arial','color':'red'},
+                  'fourth'
+                ]
+
+          Note: if you specify an object and do not specify 'font' or 'color', the defaults (textFont and textColor) are used.
+
+
+     symbols: -- an array of objects. Each object specifies the point to draw, using the character codes used in the main plotting area.
+
+        The (case insensitive) codes are:
+           PS (size), PC (color), PT (type of shape), PB (border widht for non-filled shapes)
+           BW (border width for filled shapes), BC (border color, for filled shapes)
+           ES (emphasis size), EB (emphasis border), EC (emphasis color)
+
+      Example of symbols:
+
+         symbols=[ {'pt':'c','ps':16,'pc':'red','pb':2},
+                   {'pt':'cf','ps':16,'pc':'blue'},
+                   {'pt':'tb','ps':16,'pc':'blue','pb':2},
+                   {'pt':'dp','ps':16,'pc':'blue','es':19,'ec':'yellow','eb':2,'pb':1}
+                      ];
+
+        Special case: if the symbol has a 'LS' option, then a line is drawn across the row -- no symbol or text is draw (so text is ignored)
+            There are 3 "line" options:
+               'ls':  line size (width, in pixels). Default is "do NOT show a line"
+               'lc':  color (default is black)
+               'ld':  dotted pattern (as a csv). Default is solid. Examples: ['ld']=10,  ['ld']='6,3'
+
+           Example:
+            {'pt':'sq','ps':12,'pc':'blue'},
+            {'pt':'+','ps':12,'pc':'red' },
+            {'ls':2,'lc':'blue'} ,
+            {'pt':'cg','ps':4,'pc':'black'},
+
+       Special case: if both symbols and texts are empty line ('' for texts and 0 or '' for symbols), nothing is drawn -- but the
+                   blank space is inserted
+
+   symbolsB
+      Optional. If specified, same syntax as symbol (an array of objects)
+      SymbolsB is optional (you do not have to specify it). Or, you can specify only a few rows in symbolsB.
+
+      Each object in symbolsB has the same syntax as an object in symbols
+      However: LS not used.
+        That is: if an LS attribute is specified, the symbol is ignored.
+        You can only specify a "line" in the symbol!
+      As with symbol, a 0 (or non-defined) element in symbolsB is skipped.
+
+      Note that 4 pixels seperate the 2nd symbol from the first.
+
+
+Notes on clickFunc
+
+  If a clickFunc is specified (say, clickFunc=afunc), it is called as:
+             afunc(evt,locData),
+
+       where:
+          evt: contains a number of fields. Of greatest interest
+
+                evt.type : either 'mousedown' or 'mouseup'
+                      You can use evt.type to determine if this is a mousedown (evt.type='mousedown') or mouseup (evt.type='mouseup')
+                      Thus, on a single mouse click the clickFunc will be called twice, with information pertinent to where the mouse was
+                      when the event (push down on mouse button, or release it) occured.
+
+                evt.data[various fields] : a number of fields -- see below for the details
+         locData: an object with information the location of the mouse on both mouseUp and mouseDown events
+             ['prior'] -- location of mouse on last event (where event is either mouseup or mousedown)
+             ['how'] -- location of mouse on current event.
+             ['count'] -- number of mouse clicks (mousedown events) since plot drawn. Thus, this value is the same
+                          on the mouseup event.
+             Each of these is an object with 3 fields: clientPixel, pixel, and value. Each of these fields is an object
+             with two fields: 'x' and 'y'.
+
+   locData has the following fields:
+
+            On a mouseDown:
+                prior: is the location of the most recent mouseUp event. If this is a first mouse click, prior is empty
+                now: the location when on the mousedown
+            On a mouse up:
+                prior: the location when you clicked the mouse down
+                now: the location when you released the mouse (mouse up)
+
+            Thus: on mouseUp you can readily find the locations at the start and end of a mouse move.
+            For example, to determine a "zoom area"!
+
+           Stylized example (see description of renderMouseXY for more details) :
+              locData= {
+                 prior:   {clientPixel: {x:286,y:467},pixel:{x:124, y:344}, value: {x:0.00127 ,y:0.1610 } },
+                 now:     {clientPixel: {x:535,y:138}, pixel:{x:373, y:15}, value: {x:0.00345 ,y:0.9112 } }
+              }
+
+
+   The  fields in evt.data are:
+
+      plotMinY, plotMaxY, plotYinc, plotMinX, plotMaxX, plotXinc,
+      chartBounds,
+      xCategory   :  0/1 : 1 if x is a categorical variable
+      barsDone, linesDone, pointsDone,
+      chartSpecs
+
+     Hint: rather than learn the details of these specifications, it may be easier to use wsCanvasChart.renderMouseXY() (see below).
+
+  Details:
+
+    chartBounds= :  [nw x, nw y, se x, se y] (in chart area pixels, so 0,0 is upper (nw) point on the canvas
+    chartSpecs: information on the chart. The same as returned (in the 2nd argument). However, it is a unique copy,
+                  hence does not change if other plots are drawn- see appendix for the details
+
+    barsDone, linesDone, pointsDone: information about shapes drawn in the recent plot.
+
+        Each is an array (one row per data point), consisting of an array of information on a data point.
+        With the three arrays corresponding to the 3 different kinds of "shapes" that can be drawn for a data point
+
+          pointsDone: dataPoint id, x ploc, y ploc, circle radius in px
+          linesDone:  dataPoint id (vertex 1) x ploc, y ploc, dataPoint id (vertex 2), x ploc, y ploc
+          barsDone :  dataPoint id , upper left x ploc, upper left y ploc, width, height
+
+          Where ploc, width, and height are in pixels in the chart ---
+             so ploc x,y of 0,0 is upper left corner of chart (top of x axis) -- and NOT the upper left corner of the canvas!
+
+
+    Note that linesDone, pointsDone, and barsDone are re-created on each call to wsCanvasChart.render; and contain information only
+    on lines/points/bars specified in the most recent call to wsCanvasChart.render.
+
+   That is:  points, lines, and bars created in prior calls to wsCanvasChart.render are removed.
+
+    In contrast, hitInfo in chartSpecs can contain information on all shapes created since the first call, or since the most recent call that
+       set clearAll=1 --  so long as the chartSpecs value (the 2nd value in the array returned  by the t-1 call to wsCanvasChart.render)
+       is used as the value of  dataSpecs['chartSpecs'] (in the t call to wsCanvasChart.render)
+
+    This retention allows functions (such as renderMouseXY) to find "shapes" drawn in prior calls to .render, in addition to "shapes"
+    created in the most recent call.
+
+    Technical note: "recent" call means "call that assigned the click handler to the canvas". This assignment is redone
+            on a each call for which createHitInfo=1. So a sequence of createHitInfo=0 calls will not change the evt.data used by the click
+            handler (hence won't change these arrays)
+
+   ========================================
+
+Other functions
+
+ xyInfo=wsCanvasChart.renderMouseXY(evt)  ;
+
+   This can be called from a function specified in clickFunc.
+   You SHOULD use the evt argument sent to the clickFunc as the first argument to wsCanvasChart.renderMouseXY
+
+   The returned value (xyInfo) is an  object, and contains information where the mouse is.
+
+        Reminder: the clickFunc is called on mousedown AND on mouseup -- and if you moved the mouse before releasing the button, with
+        different x,y information!
+
+       .clientPixel:  .clientPixel.x and .clientPixel.y are the pixel locations IN THE DOCUMENT (so 0,0 is top left corner of the document window)
+       .pixel  : .pixel.x and .pixel.y are the pixel locations IN THE CHARTING AREA (so 0,0 is top of x axis)
+
+       .value  : .value.x and .value.y are the computed values for the selected point.
+                   Note that if evt.data.xCatetory=1, the x value is the category the mouse click is over
+                   Note that the lower left corner of the chart area is 0,0 -- so values incease (in both x and y) toward the NE.
+
+        .shape  : several fields on what "shape" the mouse was over:
+
+               .type is 0,1,2,3.   : 1: a point shape, 2: a line shape, 3: a bar shape. 0 is "no shape matched"
+
+               .index : index into linesDone, pointsDone, or barsDone
+                       Note that since these 3 arrays are reset on every call to wsCanvasChart.render, so if a shape from a prior call
+                       is clicked on, the .index value will be incorrect.
+
+                       For details, see above (the description of evt.data)
+
+               .obsInfo : information on the dataPoints observation(s) associated with this shape
+               .obs2Info : more information -- only specified if this is a line (.type=2)
+
+                   obsInfo and obs2Info have the following fields:
+                              .x : x value (from dataPoints)   -- this can be somewhat different from the .value value
+                              .y : y value (from dataPoints) -- this can be somewhat different from the .value value
+                              .L  : label information. If no label was specified, this will be undefined
+                              .ID : Id information. '' if no ID specified for an observation.
+                              .index: index into dataPoints (as provided in the call to wsCanvasChart.render().
+                                      Thus: this is reset on every call to wsCanvasChart.render
+                                      So for shapes written in prior calls, these will NOT be correct.
+                              .plotNum : counter for calls to wsCanvasChart.render. Reset to 0 if clearAll =1
+
+                 obs2Info is ONLY used if type =2 (obsInfo is first vertex, obs2Info is for second vertex)
+
+         Notes:
+
+           *if you want to use xyInfo.shape.obsInfo.ID when plotting several charts in a row (without clearing): you can  save "plotNum"
+            (to match obsInfo.plotNum) specific versions of pointsInfo, linesInfo, and barsInfo!
+
+           * use of an "ID" attribure in dataSpecs is a useful way of matching a "clicked on shape in a plot" to a database.
+             Just use an ID that can be readily used to find an entry in your database.
+
+             That is: it might be easier to assign unique ID values to each row (in datapoints) in each of several calls to wsCanvasChart.render,
+             and keep track of attributes seperately (rather than use .plotNum and .index and .type to try to find the attributes of a clicked on shape).
+
+                ---------------------------
+
+  nchanges=updateINFO(dataPoints,extraInfo)
+
+     Adds information to the "INFO" field of each row in datapoints.
+     The fields added to INFO are:
+        XORIG : the .x value of the row
+        YORIG : the .y value of the row
+        OTHER : the value of extraInfo. If extraInfo is a scalar, it is used as is. 
+                If an array or object, the row number is used to look up a value in extraInfo
+                If no such role, '' is used
+                If extraInfo is not specified, '' is used
+        
+        Note that dataUpdated is called by reference, so is "changed in place".
+        
+        Thus, nchanges is -1 if failure, or # of rows changed
+
+     Hint: this information is avaiable to mouse clicks. In particular
+               let pointInfo=wsCanvasChart.renderMouseXY(aevt);
+           then  this is in pointInfo['shape']['obsInfo']['INFO']
+
+
+                ---------------------------
+
+ newDataPoints=wsCanvasChart.rescaleY(dataPoints1,yRange1,yRange2)
+
+   Rescale .y values, in each row of a dataPoints1 array.
+   Returns results in new array (a copy of dataPoints1, with .y values changed).
+
+   After rescaling:  the .y values in newDataPoints will be rescaled so that:
+         yRange2[0]=yRange1[0]
+         yRange2[1]=yRange1[1]
+         and similarly for all other values
+
+  Example, where:
+
+     dataPoints1 are the dataPoints (as described above) for a "1st plot"
+     dataPoints2 are the dataPoints  for a "2nd plot"
+        yRange1 is the range of a "first plot".
+                It is used for the primary Y axis, and SHOULD be specified when creating both the 1st and the 2nd plot.
+        yRange2 is the range of the 2nd Y axis AND reflects the .y values in dataPoints2.
+               It SHOULD be specified when creating the 2nd axis (and perhaps the first).
+
+                ...
+          dataSpecs1['yRange']=yRange1;
+          dataSpecs1['yRange']=dataPoints1;
+          ...
+          wsCanvasChart.render('idOfCanvasElement', dataSpecs1);  // create the first plot.
+          ...
+          // dataPointsNew will be a clone. All fields in dataPoints2 will be retained as is, but each rows .y field will be modified
+          //  the original .y will appear as .origY in (each row) of dataPointsNew  (a field NOT used by  wsCanvasChart.render)
+          dataPointsNew=wsCanvasChart.rescaleY(dataPoints2,yRange1,yRange2);
+          ...
+          dataSpecs2['yRange']=yRange1;
+          dataSpecs2['yRange2']=yRange2;
+          dataSpecs2['dataPoints']=dataPointsNew;
+          ...
+          wsCanvasChart.render('idOfCanvasElement', dataSpecs2);  // create the 2nd plot.
+
+      Hint: if you  want to use the defaults (min and max y in dataPoints1):
+            let stuff=wsCanvasChart.render(id,dataSpecs);
+            let yRange1=stuff[3]  ;
+
+         --------------------
+
+newDataPoints=wsCanvasChart.makeSteps(dataPoints1,stepBelow,useEc,useEs)
+
+   Add new rows between existing rows, with .x and .y values that will create a "step function" type of plot.
+   A step function is a line plot that is blocky. Instead of a direct line connecting adjacent points, two lines are drawn
+   to create "step" -- a horizontal and a vertical line that combine to connect the two points.
+
+   Each additional row will have the exact same attributes as row it was generated (the prior row), except for changes
+   to .x and .y. That includes point (and other) display characteristics, and an .ID attribute.
+
+   Returns results in new array (a copy of dataPoints1),
+   with points added that have adjusted values  .x and .y values, and an .added="1" attribute.
+
+   stepBelow is optional (its default is 0).
+      0 :  The steps are  always "above" a direct connecting line.
+      1 :  The steps are always "below" a direct connecting line.
+      
+   useEc and useEs are optional. If specified, they are EC and ES attribute used to highlight the added points
+   For exmaple: useEc='blue' and useEs='8'
+
+   Example:
+    Original data  in dataP1:
+       .x=1, .y=1
+       .x=2  .y=3
+       .x=3  .y=5
+       .x=7  .y=1
+
+  After calling wsCanvasChart.makeSteps(dataP1);
+       .x=1, .y=1
+       .x=1, .y=3 .INFO['ADDED']=1,
+       .x=2  .y=3
+       .x=2, .y=5 .INFO['ADDED']=1,
+       .x=3  .y=5
+       .x=7, .y=5 .INFO['ADDED']=2,
+       .x=7  .y=1
+
+ The .ADDED attribute (of INFO) is included in each of the added points. It can have 4 values:
+  1 : up from prior point, next point is to the right  -- if y is increasing
+  2 : right from prior point, next point is down      -- if y is decreasing
+  3 : right from prior point, next is up  -- if y is increasing
+  4 : down from prior point, next is right -- if y is decreasing
+
+ Note that 1 and 2 are possible if stepBelow=0, while 3 and 4 are possible if stepBelow=1
+        ----------------------------
+
+rangeInfo=wsCanvasChart.getRanges(dataPointsUse)
+
+  Returns x and y ranges of a dataPoints array
+
+  rangeInfo fields are:
+     n  : # of rows (in dataPointsUse)
+     xRange: [xmin,xmax]
+     yRange: [ymin,ymax]
+
+  Alternative:
+       rangeInfo=wsCanvasChart.getRanges()
+    to return information on most dataPoints supplied in most recent call to .render.
+   If there has NOT been a call to .render(), then  rangeInfo['n']=-1 (xRange and yRange are not defined).
+
+    Note that this no-argument version is somewhat redundant, since xRange and yRange are returned by .render 
+    (as [2] and [3] of the returned value).
+
+
+
+   ===================================================
+
+
+Example:
+
+  var oldchartSpecs=0;
+  ....
+  var doShapes=[ wsCanvasChart.renderType.points,wsCanvasChart.renderType.lines,wsCanvasChart.renderType.bars,wsCanvasChart.renderType.textValues]  ;
+  var bdatapoints=[ {x:1,y:1,L:"first"}, {{x:2,y:1,5}, {x:5,y:11}, {x:6,y:3,L:"last"}];
+  var   dataDef = {dataPoints': bdatapoints,
+                 'chartSpecs':oldchartSpecs,          // should be '0' on first call.
+                 'chartMargins':'40,75,75,10',
+                 'clearAll':0,                       // do NOT clear existing shapes on a 2nd,3rd,... call
+                 'ignoreBad':0,
+                 'chartDisplay':4,
+                 'skipYout':0,
+                 'title': 'Widget supply',
+                 'xLabel': 'Year ',
+                 'yLabel': 'Cost per unit',
+                 'titleFont': '15pt Arial',
+                 'labelFont': '12pt Arial',
+                 'axisTicFont': '8pt Arial',       // for writing x & y values on axis
+                 'axisTicColors': 'orange,red',       // for writing x & y values on axis
+                 'dataPointSize':4.5,
+                  'dataPointColor':'lime',
+                 'filledBorderWidth':1,
+                 'filledBorderColor':'yellow',      // ignore if filledBorderWidth=0
+                 'lineColor':'red',
+                   'lineWidth':2,
+                   'lineDotted':'10',                             // dashed line
+                 'barColor':'rgba(100,50,50,0.2)',          // noted the quoting of rgba is permissible
+                 'dataPointTextFont': '8pt Arial',
+                   'dataPointTextColor': 'tan',
+                   'dataPointTextOffset':'4,5',                     // in x,y (toward lower right)
+                 'renderTypes': doShapes ,                    // doShapes is an array
+                 'yGridLinesPx':30,                               // ignored if gridLineSpecs != ''
+                 'yGridLinesColor':'#E8E8E8',
+                 'gridLineSpecs':B0,3,B5,7,10,B15',                // B before number means "bold this gridline"
+                 'yRange':'0,20',
+                 'yPrec'':1,
+                 'xRange'':'0,10',               // or xmin,xmax,# of tics (evenly spaced). If # tics not specified, a tic  for each x value
+                 'clickFunc':myMouseFunc        // or '' if no click function.
+            };
+   res0=wsCanvasChart.render('myCanvas', dataDef);
+       dataDef.chartSpecs=res0[1];      // to call again (say, new values for bdatapoints)
+       ....                                         // change dataDef.dataPoints, etc.
+   res0=wsCanvasChart.render('myCanvas', dataDef); // retains prior shapes (since dataDaf.chartSpecs was set to res0[1])
+
+
+       ===================================================
+
+
+Appendix: details on chartSpecs
+
+   chartSpec fields are:   plotNum, width, height, hitInfo
+
+       hitInfo has fields: image, retTime, colorHash
+
+       image has fields:width, height, data
+               data is a 4xWidthXHeight array of "shape identifier" pixels (used in mouse clicks).
+               It is a simplified verison (just an array) of the data returned by getImageData
+
+       colorHash has fields: ncolors, hashTable
+
+         hashTable has 'rgb(i,j,k)' keys -- that are used to match to the colors of the "shape identifier pixels" in image.data
+         Each element of hashTable is a 3 element array:
+              [0] : the shape type: 1:point, 2=line, 3=bar;
+              [1] : the row of pointsDone, linesDone, or barsDone
+              [2] : an object containing the dataSpecs row for this point
+
+   Example of entry in hashTable
+   hashTable:  object(17): {
+      rgb(0,0,1):  array(3): {
+         [0]:  number: 1
+         [1]:  number: 0
+         [2]:  object(16): {
+            LC:  string(5): "black"
+            LS:  number: 2
+            LD:  array(0): {
+            }
+            PS:  number: 9
+            PC:  string(5): "black"
+            PT:  string(14): "CIRCLEGRADIENT"
+            PB:  string(1): "1"
+            BC:  string(4): "#fff"
+            BW:  number: 0
+            TC:  string(3): "tan"
+            ID:  string(0): "2"
+            x:  string(1): "1"
+            y:  string(1): "1"
+            L:  string(5): "first"
+            index:  number: 0
+            plotNum:  number: 1
+         }
+      }
+       etc...
+
+       Note that the ID attribute is not used by wsCanvasCharts -- but can be used to the calling program to match a "clicked on point" to 
+       the database element it refers to.
