@@ -9,7 +9,7 @@ What does this do: dynamically creates plots using html5 "canvas" tools.
 
 What does this use: a dataSet saved in an javascript array. Each row of the array is an object that specifies an "x" and "y" value. And (optionally) a "L" (label), an "ID", and a number of display specs.
 
-A variety of features are supported:
+A variety of features are supported!
 <ul type="a">
 <li> Can create points (circles, squares, etc), trend lines, or bar graphs  -- with selectable colors and line styles
 <li> Can label points, using Y values or a data-row "L" attribute
