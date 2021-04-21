@@ -7,7 +7,7 @@ A javascript library supporting plot creation using HTML 5 canvas.
 
 What does this do: dynamically creates plots  using html5 "canvas" tools.
 
-  What does this use: a dataSet saved in an javascript array. Each row of the array is an object that specifies
+ How to specify data: uses a dataSet saved in an javascript array. Each row of the array is an object that specifies
                       an "x" and "y" value.   And (optionally) a "L" (label), an "ID", and a number of display specs.
 
   A variety of features are supported:
