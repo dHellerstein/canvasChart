@@ -3,6 +3,8 @@ A javascript library supporting plot creation using HTML 5 canvas
 
 21 April 2021 Daniel Hellerstein (danielh@crosslink.net)
 
+A 3rd draft
+
 A javascript library supporting plot creation using HTML 5 canvas
 
 What does this do: dynamically creates plots using html5 "canvas" tools.
