@@ -22,16 +22,18 @@ It is particularly useful for drawing, and quickly refreshing, different colors 
     h) Sample selection (with a user supplied function) can be dynamically applied.
 
 
-  Hint:  testWsurveyCanvas.html (in the same examples/ sub directory) demos the use of this wsSurveyCanvasChart.
-  
+  Hint:  wsurveyCanvasChart_test.html  demos the use of this wsSurveyCanvasChart.
+           
       ===================================================
 
 Setup:
 
    In your HTML file, include something like:
-          <script src="/wsurvey/jsLib/wsurveyCanvasChart.js" type="text/javascript"></script>
+          <script src="/yourJsLibrary/wsurveyCanvasChart.js" type="text/javascript"></script>
     and a <script ..> to jQuery.js (version 3.4 or above is recommended)
 
+   Note: this gitHub release contains a version of jQuery.  It is incldued as a convenience (and to allow wsurveyCanvasChart_test.html to 
+         run without modification).
       ===================================================
 
 Usage:
