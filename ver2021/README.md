@@ -1,5 +1,5 @@
 ## Feb 2022
-This is semi-deprecated. We recommend using [wsurvey.canvasChart.js](../) instead.
+This is semi-deprecated. We recommend using [wsurvey.canvasChart.js](https://github.com/dHellerstein/canvasChart) instead.
 
 # canvasChart
 A javascript library supporting plot creation using HTML 5 canvas
