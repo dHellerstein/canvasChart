@@ -19,4 +19,11 @@
 
 See [wsurvey.canvasChart.txt](wsurvey.canvasChart.txt) for the details.
 
-  Hint:  testWsurveyCanvas.html demos the use of wsurvey.canvasChart.
+#### Notes
+  
+  testWsurveyCanvas.html demos the use of wsurvey.canvasChart.
+
+  If you download just these (and not the full wsurvey.lib.zip) 
+   - to use testWsurveyCanvas.html, you will need to edit the code a bit: change  `<script ...>` so they point to the where you saved the .js files! 
+   
+  
