@@ -17,7 +17,7 @@
     g) A key can be displayed
     h) Sample selection (with a user supplied function) can be dynamically applied.
 
-See [wsurvey.canvasChart.txt](wsurvey.canvasChart.txt) for the details.
+See [wsurvey.canvasChart.txt](wsurvey.canvasChart.txt docukment) for the details.
 
 #### Notes
   
