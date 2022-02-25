@@ -17,7 +17,7 @@
     g) A key can be displayed
     h) Sample selection (with a user supplied function) can be dynamically applied.
 
-See [wsurvey.canvasChart.txt](wsurvey.canvasChart.txt docukment) for the details.
+See [the wsurvey.canvasChart.txt document](wsurvey.canvasChart.txt) for the details.
 
 #### Notes
   
@@ -26,6 +26,6 @@ See [wsurvey.canvasChart.txt](wsurvey.canvasChart.txt docukment) for the details
   - If you download just these (and not the full wsurvey.lib.zip) 
      - to use testWsurveyCanvas.html, you will need to edit the code a bit: change  `<script ...>` so they point to the where you saved the .js files! 
   
-  - An  older version of canvasChart is in the [ver2021](ver2021 folder)
+  - An  older version of canvasChart is in the [ver2021 folder](ver2021)
   - 
   
