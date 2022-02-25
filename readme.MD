@@ -1,8 +1,8 @@
 # wsurvey.canvasChart.js  -- create graphs using HTML5
 
- What does this do: dynamically creates plots using html5 "canvas" tools.
+ *What does this do:* dynamically creates plots using html5 "canvas" tools.
 
-  What does this use: a dataset saved in a javascript array. Each row of the array is an object that specifies
+ *What does this use:* a dataset saved in a javascript array. Each row of the array is an object that specifies
                       an "x" and "y" value.   And (optionally) a "L" (label), an "ID", and a number of display specs.
 
   A variety of features are supported:
@@ -21,9 +21,9 @@ See [wsurvey.canvasChart.txt](wsurvey.canvasChart.txt) for the details.
 
 #### Notes
   
-  testWsurveyCanvas.html demos the use of wsurvey.canvasChart.
+  -testWsurveyCanvas.html demos the use of wsurvey.canvasChart.
 
-  If you download just these (and not the full wsurvey.lib.zip) 
+  - If you download just these (and not the full wsurvey.lib.zip) 
    - to use testWsurveyCanvas.html, you will need to edit the code a bit: change  `<script ...>` so they point to the where you saved the .js files! 
    
   
