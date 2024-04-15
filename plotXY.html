@@ -1,0 +1,171 @@
+<!DOCTYPE HTML>
+<html><head>
+<title>Test canvasChart plotXY </title>
+<meta charset="utf-8">
+
+<script type="text/javascript" src="jquery-3.6.0.min.js"></script>
+<script type="text/javascript" src="wsurvey.utils1.js">  </script>
+<script type="text/javascript" src="lib/wsurvey.canvasChart.js">  </script>
+
+
+<script type="text/javascript">
+
+function plot1(ifoo) {
+ let ex=$('#xdata');
+ let xv=ex.val();
+ let xvv=xv.split('\n');
+
+// the x array
+ let x=[],xskips={};
+ for (let ix=0;ix<xvv.length;ix++) {
+   let ax=jQuery.trim(xvv[ix]);
+   if (!jQuery.isNumeric(ax)){
+     xskips[ix]=1;
+     continue;l
+   }
+   x.push(parseFloat(ax));
+ }
+
+  if (x.length==0)  {
+    alert('There are no valid (numeric) x values ');
+    return false;
+  }
+
+
+
+// the y array
+
+ let ey=$('#ydata');
+ let yv=ey.val();
+ let yvv=yv.split('\n');
+ let y=[] ;
+ for (let iy=0;iy<yvv.length;iy++) {
+   if (xskips.hasOwnProperty(iy)) continue ;  // no valid (numeric) x value in this row, so skip
+   let ays=jQuery.trim(yvv[iy]);
+   let aysv=ays.split(',');
+   let yrow=[];
+   for (let jy=0;jy<aysv.length;jy++) {
+      let ay=jQuery.trim(aysv[jy]) ;
+      if (!jQuery.isNumeric(ay)) {
+        yrow[jy]='';
+      } else {
+        yrow[jy]=parseFloat(ay);
+      }
+   }
+   y.push(yrow);
+   if (y.length>=x.length)break  ;   // ignore y rows after last x row
+ }
+
+// get options
+ let options={};
+
+ let ecolors=$('#xyColors');
+ let acolors=jQuery.trim(ecolors.val());
+ options['colors']=acolors.split(',');
+
+ let eshapes=$('#xyShapes');
+ let ashapes=jQuery.trim(eshapes.val());
+ options['symbols']=ashapes.split(',');
+
+ let edashes=$('#xyDashes');
+ let adashes=jQuery.trim(edashes.val());
+ options['dashes']=adashes.split(',');
+
+ let enamess=$('#xyNames');
+ let anames=jQuery.trim(enamess.val());
+ options['names']=anames.split(',');
+
+ let exrange=$('#xyXrange');
+ let xrange=jQuery.trim(exrange.val());
+ if (xrange!=='')  options['xrange']=xrange;
+
+ let eyrange=$('#xyYrange');
+ let yrange=jQuery.trim(eyrange.val());
+ if (yrange!=='')  options['yrange']=yrange;
+
+ let eskip=$('#xySkip');
+ options['skipYout']=(eskip.prop('checked')) ? 1 : 0 ;
+
+ options['title']=jQuery.trim($('#xyTitle').val());
+ options['xTitle']=jQuery.trim($('#xyXtitle').val());
+ options['yTitle']=jQuery.trim($('#xyYtitle').val());
+ options['key']=jQuery.trim($('#xyKey').val());
+ 
+
+   let arf4=wsurvey.canvasChart.plotXY('myCanvas', x,y,options);
+}
+
+</script>
+
+</head>
+
+<body>
+<b>Demo of wsurvey.canvasChart.plotXY()</b>
+
+<br> Enter x data (one value per row); y data (one or more values per row in a csv); colors, symbols, and names ... and
+<button onClick="plot1(this)">Plot them</button>
+
+<!-- data and options table -->
+<table border="1" width="95%" callpadding="4">
+<tr valign="top">
+<td width="25%" ><b>X data</b>
+<div style="font-size:90%"> xTitle: <input type="text" size="20" value="X" id="xyXtitle"> </div>
+</td>
+
+<td width="35%"><b>Y data</b>
+<div style="font-size:90%"> yTitle: <input type="text" size="20" value="Y" id="xyYtitle"> </div>
+<br>
+</td>
+<td width="40%"><b>options</b>
+<br>Title: <input type="text" size="40" value="Sample graph" id="xyTitle">
+<br>Key title: <input type="text" size="40" value="Key"  title="Leave empty to suppress key" id="xyKey">
+ </td>
+</tr>
+
+<tr>
+<td  valign="top"   >
+<textarea cols="20" rows="10" id="xdata">
+1
+5
+10
+20
+30
+50
+80
+100
+</textarea>
+</td>
+<td valign="top"  >
+<textarea cols="60" rows="10" id="ydata">
+15,55
+125 ,9
+100, 28
+121, 40
+98, 88
+87,99
+80, 121
+200, 156
+</textarea>
+</td>
+
+<td valign="top"  >
+<ul>
+<li>Colors: <input title="Csv of colors (to use for lines and points) " type="text" size="30" value="green,blue,red,cyan,gold" id="xyColors">
+<li>Dashed: <input title="CSV of dash specs (0:solid, 5: dotted, 10:dashed" value="0,0,0,0,0" id="xyDashes">
+<li>Symbols: <input title="CSV of shapes\n (Examples:C=circle, S=square, T=triangle, D=diamond, X=X"type="text" size="30" value="C,S,T,D,X" id="xyShapes">
+<li>Names: <input  title="CSV of Y variable names (used in Key)"   type="text" size="40" value="Y1,Y2,Y3,Y4,Y5" id="xyNames">
+<li>xRange: <input title="CSV of xmin and xmax. Leave emtpy to use actual range of x data" size="10" id="xyXrange" > |
+yRange: <input title="CSV of ymin and ymax. Leave emtpy to use actual range of y data" size="10" id="xyYrange" >   |
+<br><label> skip point if Y out of range: <input type="checkbox" id="xySkip" ></label> |
+</ul>
+</td>
+</tr>
+
+</table>
+
+
+<hr>
+
+<canvas id="myCanvas"  height="400" width="1200">graph</canvas>
+</body>
+</html>
